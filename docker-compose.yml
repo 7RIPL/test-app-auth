@@ -17,6 +17,46 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - appnet 
+
+  server:
+    build:
+      context: ./server
+    container_name: auth_server
+    environment:
+      - NODE_ENV=production
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USER=authuser
+      - DATABASE_PASSWORD=authpass
+      - DATABASE_NAME=authdb
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production
+      - JWT_EXPIRES_IN=7d
+      - PORT=3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    networks:
+      - appnet
+
+  web:
+    build:
+      context: ./web
+      args:
+        NEXT_PUBLIC_API_URL: "http://localhost:3000"
+    container_name: auth_web
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+    depends_on:
+      - server
+    ports:
+      - "3001:3000"
+    networks:
+      - appnet
 
   pgadmin:
     image: dpage/pgadmin4:8
@@ -29,8 +69,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - appnet
 
 
 volumes:
   postgres_data:
+
+networks:
+  appnet:
+    driver: bridge
 
